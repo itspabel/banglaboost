@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BanglaBoost - AI Text Enhancer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/17745/17745842.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --primary-glow: rgba(79, 70, 229, 0.4);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 2rem 2rem;
+        }
+        .font-bangla {
+            font-family: 'Hind Siliguri', sans-serif;
+        }
+        /* Glassmorphism Effect */
+        .glass-effect {
+            background: rgba(31, 41, 55, 0.5); /* bg-gray-800 with opacity */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Animated Gradient Border for Textarea */
+        .textarea-container {
+            position: relative;
+            border-radius: 0.75rem; /* rounded-xl */
+            overflow: hidden;
+            padding: 2px;
+            transition: all 0.3s ease;
+        }
+        .textarea-container::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            z-index: -1;
+            margin: -2px;
+            border-radius: inherit;
+            background: linear-gradient(to right, #4f46e5, #9333ea);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .textarea-container:focus-within::before {
+            opacity: 1;
+        }
+        #banglishInput {
+            background-color: #1f2937; /* bg-gray-800 */
+            border: none;
+            outline: none;
+            box-shadow: none;
+            resize: none;
+        }
+        /* Button Styles & Animations */
+        .action-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+        }
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2), 0 0 20px var(--primary-glow);
+        }
+        .action-btn:active {
+            transform: translateY(-1px);
+        }
+        /* Custom Loading Spinner */
+        .loader {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            position: relative;
+            animation: rotate 1s linear infinite
+        }
+        .loader::before , .loader::after {
+            content: "";
+            box-sizing: border-box;
+            position: absolute;
+            inset: 0px;
+            border-radius: 50%;
+            border: 5px solid #FFF;
+            animation: prixClipFix 2s linear infinite ;
+        }
+        .loader::after{
+            border-color: #6366f1; /* indigo-500 */
+            animation: prixClipFix 2s linear infinite , rotate 0.5s linear infinite reverse;
+            inset: 6px;
+        }
+        @keyframes rotate {
+            0%   {transform: rotate(0deg)}
+            100%   {transform: rotate(360deg)}
+        }
+        @keyframes prixClipFix {
+            0%   {clip-path:polygon(50% 50%,0 0,0 0,0 0,0 0,0 0)}
+            25%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 0,100% 0,100% 0)}
+            50%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,100% 100%,100% 100%)}
+            75%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 100%)}
+            100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
+        }
+        /* Page & Element Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        .result-card {
+            opacity: 0;
+            transform: scale(0.95);
+            animation: popIn 0.5s ease-out forwards;
+        }
+        @keyframes popIn { to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <!-- Main Container -->
+    <div class="container mx-auto max-w-4xl p-4 md:p-6 min-h-screen flex flex-col animate-fade-in">
+
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6 md:mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-white flex items-center">
+                <img src="https://cdn-icons-png.flaticon.com/512/17745/17745842.png" alt="Favicon" class="w-8 h-8 mr-3 drop-shadow-lg">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400">BanglaBoost</span>
+            </h1>
+            <div class="flex items-center space-x-2">
+                <button id="settingsBtn" class="p-2 rounded-full glass-effect hover:bg-gray-700/80 transition-all duration-200" title="API Key Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </button>
+                <button id="filterBtn" class="p-2 rounded-full glass-effect hover:bg-gray-700/80 transition-all duration-200" title="Select Tones">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L16 11.414V16a1 1 0 01-.293.707l-2 2A1 1 0 0113 18v-1.586l-3.707-3.707A1 1 0 019 12V6.414L3.293 4.707A1 1 0 013 4z" /></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow">
+            <div class="glass-effect p-4 sm:p-6 rounded-2xl shadow-2xl">
+                <div class="textarea-container">
+                    <textarea id="banglishInput" rows="8" class="w-full rounded-lg p-4 text-gray-200 placeholder-gray-500" placeholder="Start typing Banglish here... e.g., 'amar sonar bangla'"></textarea>
+                </div>
+                <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <button id="enhanceBtn" class="action-btn col-span-2 sm:col-span-2 bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg">Enhance Banglish</button>
+                    <button id="toEnglishBtn" class="action-btn bg-sky-600 text-white font-bold py-3 px-4 rounded-lg">To English</button>
+                    <button id="fixGrammarBtn" class="action-btn bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg">Fix Grammar</button>
+                </div>
+                 <div class="mt-4 flex justify-end">
+                    <button id="clearBtn" class="text-gray-400 hover:text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">Clear</button>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="hidden flex-col items-center justify-center my-8">
+                <div class="loader"></div>
+                <p class="mt-4 text-lg font-semibold text-gray-400 tracking-widest">THINKING...</p>
+            </div>
+
+            <!-- Results Area -->
+            <div id="resultsArea" class="mt-8 space-y-4">
+                <!-- Enhanced variations will be injected here -->
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-8 py-6 text-center text-gray-500 text-sm opacity-80 select-none">
+            &copy; <span id="footerYear"></span> A tool by Tasfiqul Alam Pabel
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="settingsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="glass-effect rounded-2xl shadow-2xl p-6 w-11/12 max-w-md m-4 animate-fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">API Key Settings</h2>
+                <button id="closeSettingsBtn" class="p-1 rounded-full text-gray-400 hover:bg-gray-600/50 hover:text-white">&times;</button>
+            </div>
+            <p class="text-gray-400 mb-4 text-sm">Your Gemini API key is saved securely in your browser.</p>
+            <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API Key" class="w-full bg-gray-900/70 border-2 border-gray-600 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <button id="saveApiKeyBtn" class="action-btn w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg">Save Key</button>
+            <p id="apiKeyStatus" class="text-sm text-green-500 mt-3 text-center h-4"></p>
+        </div>
+    </div>
+
+    <div id="filterModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="glass-effect rounded-2xl shadow-2xl p-6 w-11/12 max-w-md m-4 animate-fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">Select Tones</h2>
+                <button id="closeFilterBtn" class="p-1 rounded-full text-gray-400 hover:bg-gray-600/50 hover:text-white">&times;</button>
+            </div>
+            <div id="toneList" class="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2"></div>
+            <div class="mt-4 flex justify-between">
+                 <button id="selectAllTonesBtn" class="text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">Select All</button>
+                 <button id="deselectAllTonesBtn" class="text-sm font-semibold text-gray-400 hover:text-gray-200 transition-colors">Deselect All</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const getEl = (id) => document.getElementById(id);
+
+            const settingsBtn = getEl('settingsBtn');
+            const filterBtn = getEl('filterBtn');
+            const settingsModal = getEl('settingsModal');
+            const filterModal = getEl('filterModal');
+            const closeSettingsBtn = getEl('closeSettingsBtn');
+            const closeFilterBtn = getEl('closeFilterBtn');
+            const apiKeyInput = getEl('apiKeyInput');
+            const saveApiKeyBtn = getEl('saveApiKeyBtn');
+            const apiKeyStatus = getEl('apiKeyStatus');
+            const banglishInput = getEl('banglishInput');
+            const enhanceBtn = getEl('enhanceBtn');
+            const toEnglishBtn = getEl('toEnglishBtn');
+            const fixGrammarBtn = getEl('fixGrammarBtn');
+            const clearBtn = getEl('clearBtn');
+            const loadingIndicator = getEl('loadingIndicator');
+            const resultsArea = getEl('resultsArea');
+            const toneList = getEl('toneList');
+            const selectAllTonesBtn = getEl('selectAllTonesBtn');
+            const deselectAllTonesBtn = getEl('deselectAllTonesBtn');
+
+            const tones = ['Friendly', 'Casual', 'Professional', 'Formal', 'Conversational', 'Assertive', 'Persuasive', 'Neutral', 'Funny', 'Poetic', 'Sarcastic', 'Empathetic'];
+
+            const toggleModal = (modal, show) => {
+                if (show) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                } else {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            };
+
+            settingsBtn.addEventListener('click', () => toggleModal(settingsModal, true));
+            closeSettingsBtn.addEventListener('click', () => toggleModal(settingsModal, false));
+            filterBtn.addEventListener('click', () => toggleModal(filterModal, true));
+            closeFilterBtn.addEventListener('click', () => toggleModal(filterModal, false));
+            
+            const saveApiKey = () => {
+                if (apiKeyInput.value.trim()) {
+                    localStorage.setItem('geminiApiKey', apiKeyInput.value.trim());
+                    apiKeyStatus.textContent = 'API Key saved!';
+                    setTimeout(() => {
+                        apiKeyStatus.textContent = '';
+                        toggleModal(settingsModal, false);
+                    }, 1500);
+                } else {
+                    apiKeyStatus.textContent = 'Please enter a valid API Key.';
+                }
+            };
+
+            const loadApiKey = () => {
+                const savedKey = localStorage.getItem('geminiApiKey');
+                if (savedKey) apiKeyInput.value = savedKey;
+            };
+
+            saveApiKeyBtn.addEventListener('click', saveApiKey);
+            
+            const populateTones = () => {
+                toneList.innerHTML = tones.map(tone => `
+                    <label class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-700/50 cursor-pointer transition-colors">
+                        <input type="checkbox" value="${tone}" class="tone-checkbox form-checkbox h-5 w-5 rounded bg-gray-900 border-gray-600 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-gray-800">
+                        <span>${tone}</span>
+                    </label>
+                `).join('');
+            };
+            
+            selectAllTonesBtn.addEventListener('click', () => document.querySelectorAll('.tone-checkbox').forEach(cb => cb.checked = true));
+            deselectAllTonesBtn.addEventListener('click', () => document.querySelectorAll('.tone-checkbox').forEach(cb => cb.checked = false));
+
+            const callGemini = async (prompt, apiKey) => {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.6, maxOutputTokens: 1024 }
+                };
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error?.message || `API Error: ${response.status}`);
+                const candidate = result.candidates?.[0];
+                if (!candidate || !candidate.content?.parts?.[0]?.text) throw new Error(`Invalid API response (Reason: ${candidate?.finishReason || 'UNKNOWN'})`);
+                return candidate.content.parts[0].text.trim();
+            };
+
+            const setLoadingState = (isLoading) => {
+                loadingIndicator.classList.toggle('hidden', !isLoading);
+                loadingIndicator.classList.toggle('flex', isLoading);
+                [enhanceBtn, toEnglishBtn, fixGrammarBtn].forEach(btn => {
+                    btn.disabled = isLoading;
+                    btn.classList.toggle('opacity-50', isLoading);
+                    btn.classList.toggle('cursor-not-allowed', isLoading);
+                });
+            };
+
+            const displayResult = (title, content, originalText = null, isError = false, index = 0) => {
+                const card = document.createElement('div');
+                card.className = 'result-card glass-effect p-4 rounded-xl shadow-lg transition-all duration-300 hover:shadow-indigo-500/20 hover:border-indigo-500/50';
+                card.style.animationDelay = `${index * 100}ms`;
+                
+                const contentClass = isError ? 'text-red-400' : 'font-bangla text-xl text-gray-200';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-lg ${isError ? 'text-red-500' : 'text-indigo-400'} mb-2">${title}</h3>
+                            ${originalText ? `<p class="text-sm text-gray-400 mb-2 opacity-80">Original: ${originalText}</p>` : ''}
+                            <p class="${contentClass}">${content}</p>
+                        </div>
+                        <button class="copy-btn bg-gray-700/50 hover:bg-gray-600/70 text-gray-300 font-bold py-1 px-3 rounded-md text-sm transition-colors ${isError ? 'hidden' : ''}">Copy</button>
+                    </div>
+                `;
+                resultsArea.appendChild(card);
+                if (!isError) {
+                    card.querySelector('.copy-btn').addEventListener('click', (e) => {
+                        const textArea = document.createElement("textarea");
+                        textArea.value = content;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        try {
+                            document.execCommand('copy');
+                            const btn = e.target;
+                            btn.textContent = 'Copied!';
+                            btn.classList.add('bg-green-600', 'text-white');
+                            setTimeout(() => {
+                                btn.textContent = 'Copy';
+                                btn.classList.remove('bg-green-600', 'text-white');
+                            }, 2000);
+                        } catch (err) { console.error('Copy failed', err); }
+                        document.body.removeChild(textArea);
+                    });
+                }
+            };
+            
+            const handleApiRequest = async (promptGenerator) => {
+                const apiKey = localStorage.getItem('geminiApiKey');
+                const inputText = banglishInput.value.trim();
+                if (!apiKey) { alert('Please set your Gemini API key in settings.'); toggleModal(settingsModal, true); return; }
+                if (!inputText) { alert('Please enter some text to process.'); return; }
+                setLoadingState(true);
+                resultsArea.innerHTML = '';
+                try {
+                    await promptGenerator(inputText, apiKey);
+                } catch (error) {
+                    resultsArea.innerHTML = `<div class="text-center text-red-400 p-4 bg-red-900/50 rounded-lg">${error.message}</div>`;
+                } finally {
+                    setLoadingState(false);
+                }
+            };
+
+            enhanceBtn.addEventListener('click', () => handleApiRequest(async (inputText, apiKey) => {
+                const selectedTones = Array.from(document.querySelectorAll('.tone-checkbox:checked')).map(cb => cb.value);
+                if (selectedTones.length === 0) {
+                    alert('Please select at least one tone from the filter menu.');
+                    toggleModal(filterModal, true);
+                    setLoadingState(false);
+                    return;
+                }
+                displayResult('Original Text', inputText, null, false, 0);
+                let i = 1;
+                for (const tone of selectedTones) {
+                    const prompt = `You are an expert linguist. Rewrite the following Banglish text into pure, natural-sounding Bengali with a '${tone}' tone. IMPORTANT: Provide ONLY the final Bengali text. Do not add any English explanations, labels, or quotation marks.\n\nText: "${inputText}"`;
+                    try {
+                        const result = await callGemini(prompt, apiKey);
+                        displayResult(tone, result, null, false, i++);
+                    } catch (error) {
+                        displayResult(`${tone} - Failed`, error.message, null, true, i++);
+                    }
+                }
+            }));
+
+            toEnglishBtn.addEventListener('click', () => handleApiRequest(async (inputText, apiKey) => {
+                const prompt = `Translate the following Banglish or Bangla text into English. Provide only the English translation. Text: "${inputText}"`;
+                const result = await callGemini(prompt, apiKey);
+                displayResult('English Translation', result, inputText, false, 0);
+            }));
+
+            fixGrammarBtn.addEventListener('click', () => handleApiRequest(async (inputText, apiKey) => {
+                const prompt = `Correct any grammatical errors in the following Bengali text. If the input is in Banglish, first convert it to proper Bengali and then correct its grammar. Provide only the final, corrected Bengali text. Text: "${inputText}"`;
+                const result = await callGemini(prompt, apiKey);
+                displayResult('Grammatically Corrected', result, inputText, false, 0);
+            }));
+            
+            clearBtn.addEventListener('click', () => {
+                banglishInput.value = '';
+                resultsArea.innerHTML = '';
+            });
+
+            loadApiKey();
+            populateTones();
+
+            // Set footer year dynamically
+            const footerYear = document.getElementById('footerYear');
+            if (footerYear) {
+                footerYear.textContent = new Date().getFullYear();
+            }
+        });
+    </script>
+</body>
+  </html>
